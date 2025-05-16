@@ -12,10 +12,11 @@ void setup() {
 
   // attatch each servo to the pins
   for( int i = 0; i < 8; i++ ) {
-        servos[ i ].attach(servoPins[ i ] );
+        servos[ i ].attach( servoPins[ i ] );
   }
  
   homePosition( servos, true );
+  delay(8000);
 }
 
 void loop() {
@@ -43,15 +44,32 @@ void loop() {
   }
   IrReceiver.resume();
   */
-  delay(5000);
-  servos[0].write(180);
-  servos[1].write(0);
-
-  servos[6].write(0);
-  servos[7].write(180);
-  delay(20000);
+  delay(250);
+  gallopingGait( servos );
+  delay(250);
+  homePosition( servos, true );
 }
 
+void gallopingGait( Servo (&servos)[8] ) {
+  /*
+  // move the FL and BR lower motors 10
+  servos[ 1 ].write(0);
+  servos[ 7 ].write(180);
+
+  // move FR and BL upper motors 20
+  servos[ 2 ].write(0);
+  servos[ 4 ].write(180);
+
+  // move FR and BL lower motors 10
+  servos[3].write(180);
+  servos[5].write(0);
+  */
+  for( int i = 0; i < 8; i++ ) {
+
+    servos[i].write(jumpPositions[i]);
+  }
+
+}
 
 void getMotorPositions( int motorPositions[], Servo (&servos)[8] ) {
 

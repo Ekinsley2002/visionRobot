@@ -13,12 +13,14 @@ decode_results results;
 // Constants
 Servo servos[8];
 
-const int homePositions[ 8 ] = { 160, 20, 20, 165, 160, 20, 20, 160};
-
+const int homePositions[ 8 ] = { 160, 0, 0, 160, 160, 0, 0, 160};
+const int jumpPositions[ 8 ] = { 155, 20, 5, 140, 155, 20, 5, 140 };
 // Pins
 const int servoPins[ 8 ] = {2, 3, 4, 5, 6, 7, 8, 9};
 
 // Function Declorations
+
+void gallopingGait( Servo (&servos)[8] );
 
 void getMotorPositions( int motorPositions[], Servo (&servos)[8] );
 
