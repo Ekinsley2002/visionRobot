@@ -7,49 +7,51 @@
 
 void setup() {
   // begin serial reading
-  Serial.begin(9600);
-  irrecv.enableIRIn();
+  Serial.begin(115200);
+  IrReceiver.begin(IR_PIN, ENABLE_LED_FEEDBACK);
 
   // attatch each servo to the pins
   for( int i = 0; i < 8; i++ ) {
-        servos[ i ].attach(servoPins[ i] );
+        servos[ i ].attach(servoPins[ i ] );
   }
  
   homePosition( servos, true );
 }
 
 void loop() {
-  int offsets[8] = {10, 10, 10, 10, 10, 10, 10, 10};
-  char ops[8] = {'-', '+', '-', '+', '-', '+', '-', '+'};
-  if (irrecv.decode(&results)) {
-    unsigned long key = results.value;
-    Serial.println(key, HEX);  // Use this to find codes for buttons
-
-    switch (key) {
-      case 0xFFA25D:  // "0" button
-        homePosition( servos, false );
-        break;
-
-      case 0xFF30CF:  // "1" button
-        moveRobot( servos, offsets, ops, homePositions );
-        break;
-
-      case 0xFF18E7:  // "2" button
-        // moveAllServos(45);
-        break;
-
-      case 0xFF7A85:  // "3" button
-        // moveAllServos(135);
-        break;
-
-      default:
-        Serial.println("Unknown button");
-        break;
-    }
-
-    irrecv.resume();  // Receive the next code
+  /*
+  if( !IrReceiver.decode() ) {
+    return;
   }
+
+  uint32_t cmd = IrReceiver.decodedIRData.command;
+
+  switch( cmd ) {
+    case 0x10:
+
+      servos[0].write(180);
+      break;
+
+    case 0x11:
+
+      servos[0].write(160);
+      break;
+
+    default:
+      Serial.println(F("→ no action"));
+      break;
+  }
+  IrReceiver.resume();
+  */
+  delay(5000);
+  servos[0].write(180);
+  servos[1].write(0);
+
+  servos[6].write(0);
+  servos[7].write(180);
+  delay(20000);
 }
+
 
 void getMotorPositions( int motorPositions[], Servo (&servos)[8] ) {
 
@@ -81,22 +83,32 @@ void getPositionOffsets( int offsets[], int positions[], int destinationPosition
 // Input: initial value, increment value, servo
 // Output: Gradual movement (No sudden movement that will brown the board)
 // Process: This will take the initial value and slowly increment one and write to the servo
-void gradualMovement( int initialValue, int incrementValue, int offset, Servo &servo, char op ) {
+void gradualMovement( int initialValue, int offset, Servo &servo, char op ) {
 
   if( op == '+' ) {
-    for( int i = incrementValue; i < offset; i += incrementValue ) {
+
+    int finalAngle = initialValue + offset;
+
+    for( int i = 0; i < offset; i++ ) {
 
       servo.write( initialValue + i );
       delay(15);
     }
+  servo.write(finalAngle);
   }
   else if( op == '-' ) {
-    for( int i = incrementValue; i < offset; i += incrementValue ) {
+
+    int finalAngle = initialValue - offset;
+
+    for( int i = 0; i < offset; i++  ) {
 
       servo.write( initialValue - i );
       delay(15);
     }
+
+    servo.write(finalAngle);
   }
+
 }
 
 // Function name: homePosition
@@ -143,13 +155,23 @@ void homePosition( Servo (&servos)[8], bool starting ) {
 // Output: Modularized movement, potential to setup LED output
 // Process: I will have one for loop going through each of the three arrays, adding or subtracting each degree value.
 //   Once I have the value to write I will send the values to a gradual movement function to slowly move the piece.
-bool moveRobot( Servo (&servos)[8], int offsets[], char operators[], int motorPositions[] ) {
+void moveRobot( Servo (&servos)[8], int offsets[], char operators[], int motorPositions[] ) {
 
   for( int i = 0; i < 2; i++ ) {
 
-    gradualMovement( motorPositions[ i ], 1, offsets[ i ], servos[ i ], operators[ i ] );
+    gradualMovement( motorPositions[ i ], offsets[ i ], servos[ i ], operators[ i ] );
   }
   return false;
   }
 
+       /*
+        int motorPositions[8];
+        getMotorPositions(motorPositions, servos);
+
+        // 2) use your hard-coded offsets & ops
+        int offsets[8] = {10,10,10,10,10,10,10,10};
+        char ops[8]    = {'-','+','-','+','-','+','-','+'};
+
+        // 3) actually move
+        moveRobot(servos, offsets, ops, motorPositions);  // only 2 servos for test*/
 

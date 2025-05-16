@@ -3,18 +3,17 @@
 
 // Libraries
 #include <Arduino.h>
-#include <IRremote.h>
+#include <IRremote.hpp>
 #include <Servo.h>
 
 // Setup IR
-const int RECV_PIN = 11;
-IRrecv irrecv(RECV_PIN);
+const int IR_PIN = 11;
 decode_results results;
 
 // Constants
 Servo servos[8];
 
-const int homePositions[ 8 ] = { 180, 0, 0, 180, 180, 0, 0, 180};
+const int homePositions[ 8 ] = { 160, 20, 20, 165, 160, 20, 20, 160};
 
 // Pins
 const int servoPins[ 8 ] = {2, 3, 4, 5, 6, 7, 8, 9};
@@ -31,7 +30,7 @@ void getPositionOffsets( int offsets[], int positions[], int destinationPosition
 // Input: initial value, increment value, servo
 // Output: Gradual movement (No sudden movement that will brown the board)
 // Process: This will take the initial value and slowly increment one and write to the servo
-void gradualMovement( int initialValue, int incrementValue, int offset, Servo &servo, char op ); // op == operator
+void gradualMovement( int initialValue, int offset, Servo &servo, char op ); // op == operator
 
 // Function name: homePosition
 // Input: all the servos for the legs      U   L  U   L    U   L  U   L
@@ -46,6 +45,6 @@ void homePosition( Servo (&servos)[8], bool starting );
 // Output: Modularized movement
 // Process: I will have one for loop going through each of the three arrays, adding or subtracting each degree value.
 //   Once I have the value to write I will send the values to a gradual movement function to slowly move the piece.
-bool moveRobot( Servo (&servos)[8], int offsets[], char operators[], int motorPositions[] );
+void moveRobot( Servo (&servos)[8], int offsets[], char operators[], int motorPositions[] );
 
 #endif
