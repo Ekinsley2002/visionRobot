@@ -16,26 +16,26 @@ void setup() {
   }
  
   homePosition( servos, true );
-  delay(8000);
+  delay(3000);
 }
 
 void loop() {
-  /*
+  
   if( !IrReceiver.decode() ) {
     return;
   }
 
-  uint32_t cmd = IrReceiver.decodedIRData.command;
+  auto &d = IrReceiver.decodedIRData;
 
-  switch( cmd ) {
-    case 0x10:
+  switch( d.command ) {
+    case 0x16:
 
-      servos[0].write(180);
+      homePosition( servos, true );
       break;
 
-    case 0x11:
+    case 0x0c:
 
-      servos[0].write(160);
+      gallopingGait( servos );
       break;
 
     default:
@@ -43,14 +43,28 @@ void loop() {
       break;
   }
   IrReceiver.resume();
-  */
-  delay(250);
-  gallopingGait( servos );
-  delay(250);
-  homePosition( servos, true );
 }
 
 void gallopingGait( Servo (&servos)[8] ) {
+
+  while(1) {
+
+    auto &d = IrReceiver.decodedIRData;
+
+    if( d.command == 0x0c ) {
+      return;
+    }
+
+    // phase 1
+    for( int i = 0; i < 8; i++ ) {
+
+      servos[i].write(jumpPositions[i]);
+    }
+
+    //phase 2
+
+    // phase 3
+  }
   /*
   // move the FL and BR lower motors 10
   servos[ 1 ].write(0);
@@ -63,12 +77,12 @@ void gallopingGait( Servo (&servos)[8] ) {
   // move FR and BL lower motors 10
   servos[3].write(180);
   servos[5].write(0);
-  */
+  
   for( int i = 0; i < 8; i++ ) {
 
     servos[i].write(jumpPositions[i]);
   }
-
+  */
 }
 
 void getMotorPositions( int motorPositions[], Servo (&servos)[8] ) {
@@ -182,14 +196,4 @@ void moveRobot( Servo (&servos)[8], int offsets[], char operators[], int motorPo
   return false;
   }
 
-       /*
-        int motorPositions[8];
-        getMotorPositions(motorPositions, servos);
-
-        // 2) use your hard-coded offsets & ops
-        int offsets[8] = {10,10,10,10,10,10,10,10};
-        char ops[8]    = {'-','+','-','+','-','+','-','+'};
-
-        // 3) actually move
-        moveRobot(servos, offsets, ops, motorPositions);  // only 2 servos for test*/
 
