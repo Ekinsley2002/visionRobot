@@ -56,13 +56,12 @@ void gallopingGait( Servo (&servos)[8] ) {
         return;
       }
     }
+    
     // phase 1
     for( int i = 0; i < 8; i++ ) {
 
-      servos[i].write(jumpPositions[i]);
+      servos[i].write(gallopPhase1[i]);
     }
-
-    //phase 2
 
     // phase 3
   }
