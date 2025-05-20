@@ -14,7 +14,8 @@ decode_results results;
 Servo servos[8];
 
 const int homePositions[ 8 ] = { 160, 0, 20, 180, 160, 0, 20, 180};
-const int jumpPositions[ 8 ] = { 155, 20, 5, 140, 155, 20, 5, 140 };
+const int gallopPhase1[ 8 ] = { 180, 0, 20, 140, 180, 0, 40, 160 };
+
 // Pins
 const int servoPins[ 8 ] = {2, 3, 4, 5, 6, 7, 8, 9};
 
