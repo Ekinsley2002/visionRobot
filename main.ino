@@ -37,10 +37,6 @@ void loop() {
 
       gallopingGait( servos );
       break;
-
-    default:
-      Serial.println(F("→ no action"));
-      break;
   }
   IrReceiver.resume();
 }
@@ -51,10 +47,15 @@ void gallopingGait( Servo (&servos)[8] ) {
 
     auto &d = IrReceiver.decodedIRData;
 
-    if( d.command == 0x0c ) {
-      return;
+    if (IrReceiver.decode()) {
+      uint8_t cmd = IrReceiver.decodedIRData.command;
+      IrReceiver.resume();
+      if (cmd == 0x16) {
+        // exit back to home
+        homePosition(servos, true);
+        return;
+      }
     }
-
     // phase 1
     for( int i = 0; i < 8; i++ ) {
 
@@ -65,24 +66,6 @@ void gallopingGait( Servo (&servos)[8] ) {
 
     // phase 3
   }
-  /*
-  // move the FL and BR lower motors 10
-  servos[ 1 ].write(0);
-  servos[ 7 ].write(180);
-
-  // move FR and BL upper motors 20
-  servos[ 2 ].write(0);
-  servos[ 4 ].write(180);
-
-  // move FR and BL lower motors 10
-  servos[3].write(180);
-  servos[5].write(0);
-  
-  for( int i = 0; i < 8; i++ ) {
-
-    servos[i].write(jumpPositions[i]);
-  }
-  */
 }
 
 void getMotorPositions( int motorPositions[], Servo (&servos)[8] ) {
