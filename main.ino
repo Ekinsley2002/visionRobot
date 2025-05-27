@@ -4,14 +4,15 @@
 
 #include "mainHelper.h"
 
-
 void setup() {
+
   // begin serial reading
   Serial.begin(115200);
   IrReceiver.begin(IR_PIN, ENABLE_LED_FEEDBACK);
 
   // attatch each servo to the pins
   for( int i = 0; i < 8; i++ ) {
+
         servos[ i ].attach( servoPins[ i ] );
   }
  
@@ -30,7 +31,7 @@ void loop() {
   switch( d.command ) {
     case 0x16:
 
-      homePosition( servos, true );
+      homePosition( servos, false );
       break;
 
     case 0x0c:
@@ -41,7 +42,12 @@ void loop() {
   IrReceiver.resume();
 }
 
-void gallopingGait( Servo (&servos)[8] ) {
+void gallopingGait( ServoEasing (&servos)[8] ) {
+
+  // initialize variables to move robot
+  int currentOffsets[ 8 ];
+  int currentPositions[ 8 ];
+  char ops[ 8 ];
 
   while(1) {
 
@@ -60,14 +66,20 @@ void gallopingGait( Servo (&servos)[8] ) {
     // phase 1
     for( int i = 0; i < 8; i++ ) {
 
-      servos[i].write(gallopPhase1[i]);
-    }
+        servos[i].setEaseTo( gallopPhase1[i], 200 );
+      }
+    synchronizeAllServosStartAndWaitForAllServosToStop();
+    delay(500);
+
+    // phase 2
+    //delay(500);
 
     // phase 3
+    //delay(500);
   }
 }
 
-void getMotorPositions( int motorPositions[], Servo (&servos)[8] ) {
+void getMotorPositions( int motorPositions[], ServoEasing (&servos)[8] ) {
 
   // go through each servo and read the current angle
   for( int i = 0; i < 8; i++ ) {
@@ -97,7 +109,7 @@ void getPositionOffsets( int offsets[], int positions[], int destinationPosition
 // Input: initial value, increment value, servo
 // Output: Gradual movement (No sudden movement that will brown the board)
 // Process: This will take the initial value and slowly increment one and write to the servo
-void gradualMovement( int initialValue, int offset, Servo &servo, char op ) {
+void gradualMovement( int initialValue, int offset, ServoEasing (&servos)[8], char op ) {
 
   if( op == '+' ) {
 
@@ -105,22 +117,23 @@ void gradualMovement( int initialValue, int offset, Servo &servo, char op ) {
 
     for( int i = 0; i < offset; i++ ) {
 
-      servo.write( initialValue + i );
-      delay(15);
+      //servo.write( initialValue + i );
+      delay(3);
     }
-  servo.write(finalAngle);
+  //servo.write(finalAngle);
   }
+
   else if( op == '-' ) {
 
     int finalAngle = initialValue - offset;
 
     for( int i = 0; i < offset; i++  ) {
 
-      servo.write( initialValue - i );
-      delay(15);
+      //servo.write( initialValue - i );
+      delay(3);
     }
 
-    servo.write(finalAngle);
+    //servo.write(finalAngle);
   }
 
 }
@@ -130,7 +143,7 @@ void gradualMovement( int initialValue, int offset, Servo &servo, char op ) {
 // Output: Movement to the home position (180, 0, 0, 180, 180, 0, 0, 180)
 // Process: This writes all the values for home position, if it is the starting occurence then just write
 // otherwise, find current positions and gradually step.
-void homePosition( Servo (&servos)[8], bool starting ) {
+void homePosition( ServoEasing (&servos)[8], bool starting ) {
 
   // initialize variables
   int motorPositions[8], homeOffsets[8];
@@ -141,8 +154,9 @@ void homePosition( Servo (&servos)[8], bool starting ) {
 
     for( int i = 0; i < 8; i++ ) {
 
-        servos[i].write(homePositions[i]);
+        servos[i].setEaseTo( homePositions[i], 600 );
     }
+    synchronizeAllServosStartAndWaitForAllServosToStop();
   }
 
   // otherwise gradual step
@@ -169,13 +183,12 @@ void homePosition( Servo (&servos)[8], bool starting ) {
 // Output: Modularized movement, potential to setup LED output
 // Process: I will have one for loop going through each of the three arrays, adding or subtracting each degree value.
 //   Once I have the value to write I will send the values to a gradual movement function to slowly move the piece.
-void moveRobot( Servo (&servos)[8], int offsets[], char operators[], int motorPositions[] ) {
+void moveRobot( ServoEasing (&servos)[8], int offsets[], char operators[], int motorPositions[] ) {
 
-  for( int i = 0; i < 2; i++ ) {
+  for( int i = 0; i < 8; i++ ) {
 
-    gradualMovement( motorPositions[ i ], offsets[ i ], servos[ i ], operators[ i ] );
+    //gradualMovement( motorPositions[ i ], offsets[ i ], servos[ i ], operators[ i ] );
   }
-  return false;
   }
 
 
