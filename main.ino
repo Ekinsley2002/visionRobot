@@ -16,22 +16,28 @@ void setup() {
         servos[ i ].attach( servoPins[ i ] );
   }
  
-  homePosition( servos, true );
+  // go to home position on startup
+  homePosition( servos );
+
   delay(3000);
 }
 
+// main loop of the robot
 void loop() {
   
   if( !IrReceiver.decode() ) {
     return;
   }
 
+  // decode the data of the IR remote
   auto &d = IrReceiver.decodedIRData;
 
+  // determine if 0 (home) or 1 (gallop)
   switch( d.command ) {
+
     case 0x16:
 
-      homePosition( servos, false );
+      homePosition( servos );
       break;
 
     case 0x0c:
@@ -39,156 +45,85 @@ void loop() {
       gallopingGait( servos );
       break;
   }
+
   IrReceiver.resume();
 }
 
 void gallopingGait( ServoEasing (&servos)[8] ) {
 
-  // initialize variables to move robot
-  int currentOffsets[ 8 ];
-  int currentPositions[ 8 ];
-  char ops[ 8 ];
-
-  while(1) {
+  // continues walk cycle until home position
+  while( 1 ) {
 
     auto &d = IrReceiver.decodedIRData;
 
-    if (IrReceiver.decode()) {
+    if( IrReceiver.decode() ) {
+
       uint8_t cmd = IrReceiver.decodedIRData.command;
+
       IrReceiver.resume();
+
       if (cmd == 0x16) {
+
         // exit back to home
-        homePosition(servos, true);
+        homePosition(servos);
         return;
       }
     }
     
     // phase 1
-    for( int i = 0; i < 8; i++ ) {
-
-        servos[i].setEaseTo( gallopPhase1[i], 200 );
-      }
-    synchronizeAllServosStartAndWaitForAllServosToStop();
-    delay(500);
+    moveRobot( servos, gallopPhase1, motorTimingGallop1 );
+    delay(250);
 
     // phase 2
-    //delay(500);
+    moveRobot( servos, gallopPhase2, motorTimingGallop2 );
+    delay(250);
 
     // phase 3
-    //delay(500);
+    moveRobot( servos, gallopPhase3, motorTimingGallop3 );
+    delay(250);
+
+    // phase 4
+    moveRobot( servos, homePositions, motorTimingHomePositon );
+    delay(250);
+
+    // phase 5
+    moveRobot( servos, gallopPhase4, motorTimingGallop1 );
+    delay(250);
+
+    // phase 6
+    moveRobot( servos, gallopPhase5, motorTimingGallop4 );
+    delay(250);
+
+    // phase 7
+    moveRobot( servos, gallopPhase6, motorTimingGallop4 );
+    delay(250);
+
+    // phase 8
+    moveRobot( servos, homePositions, motorTimingHomePositon );
+    delay(250);
   }
-}
-
-void getMotorPositions( int motorPositions[], ServoEasing (&servos)[8] ) {
-
-  // go through each servo and read the current angle
-  for( int i = 0; i < 8; i++ ) {
-
-    // save each motor position into the array
-    motorPositions[ i ] = servos[ i ].read();
-  }
-}
-
-void getOperators(int motorPositions[], int destinationPositions[], char operators[]) {
-
-  for( int i = 0; i < 8; ++i )
-    {
-      operators[i] = (motorPositions[i] > destinationPositions[i]) ? '-' : '+';
-    }
-}
-
-void getPositionOffsets( int offsets[], int positions[], int destinationPositions[] ) {
-
-  for( int i = 0; i < 8; i++ ) {
-
-    offsets[ i ] = abs( destinationPositions[ i ] - positions[ i ]);
-  }
-}
-
-// Function name: gradualMovement
-// Input: initial value, increment value, servo
-// Output: Gradual movement (No sudden movement that will brown the board)
-// Process: This will take the initial value and slowly increment one and write to the servo
-void gradualMovement( int initialValue, int offset, ServoEasing (&servos)[8], char op ) {
-
-  if( op == '+' ) {
-
-    int finalAngle = initialValue + offset;
-
-    for( int i = 0; i < offset; i++ ) {
-
-      //servo.write( initialValue + i );
-      delay(3);
-    }
-  //servo.write(finalAngle);
-  }
-
-  else if( op == '-' ) {
-
-    int finalAngle = initialValue - offset;
-
-    for( int i = 0; i < offset; i++  ) {
-
-      //servo.write( initialValue - i );
-      delay(3);
-    }
-
-    //servo.write(finalAngle);
-  }
-
 }
 
 // Function name: homePosition
 // Input: all the servos for the legs      U   L  U   L    U   L  U   L
 // Output: Movement to the home position (180, 0, 0, 180, 180, 0, 0, 180)
-// Process: This writes all the values for home position, if it is the starting occurence then just write
-// otherwise, find current positions and gradually step.
-void homePosition( ServoEasing (&servos)[8], bool starting ) {
+// Process: Moves the robot to home position
+void homePosition( ServoEasing ( &servos )[ 8 ] ) {
 
-  // initialize variables
-  int motorPositions[8], homeOffsets[8];
-  char ops[8];
-
-  // check if this is the startup
-  if( starting ) {
-
-    for( int i = 0; i < 8; i++ ) {
-
-        servos[i].setEaseTo( homePositions[i], 600 );
-    }
-    synchronizeAllServosStartAndWaitForAllServosToStop();
-  }
-
-  // otherwise gradual step
-  else {
-    
-    // I need to find out what each motors position is currently
-    getMotorPositions( motorPositions, servos );
-
-    // I need to find the offset of each current posiition to get to home position
-    getPositionOffsets( homeOffsets, motorPositions, homePositions );
-
-    // I need to find out the +/- for each motor
-    getOperators( motorPositions, homePositions, ops );
-
-    // now I need to call move robot to gradually move each motor
-    moveRobot( servos, homeOffsets, ops, motorPositions );
-  }
+  moveRobot( servos, homePositions, motorTimingHomePositon );
 }
 
 // Function name: MoveRobot
 // Input: - Array in the following order with a upper and lower for each: FL, FR, BL, BR
-//        - Next is an array of changes in degrees (e.x. 0, 20, 0, 20, 0, 20, 0, 20)
-//        - Lastly, an array of +/- for either positive or negative diretion for the motors
 // Output: Modularized movement, potential to setup LED output
-// Process: I will have one for loop going through each of the three arrays, adding or subtracting each degree value.
-//   Once I have the value to write I will send the values to a gradual movement function to slowly move the piece.
-void moveRobot( ServoEasing (&servos)[8], int offsets[], char operators[], int motorPositions[] ) {
+// Process: One loop to set positions, then ease all motors to destinations
+void moveRobot( ServoEasing ( &servos )[ 8 ], int destinationPositions[], int timings[] ) {
 
   for( int i = 0; i < 8; i++ ) {
 
-    //gradualMovement( motorPositions[ i ], offsets[ i ], servos[ i ], operators[ i ] );
-  }
+    servos[i].setEaseTo( destinationPositions[i], timings[i] );
   }
 
-
+  // move all servos at once
+  synchronizeAllServosStartAndWaitForAllServosToStop();
+}
