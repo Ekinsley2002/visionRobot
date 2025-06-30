@@ -1,0 +1,99 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from matplotlib.widgets import Slider
+
+# Constants (in meters)
+radiusUpper = 38 / 1000
+radiusLower = 29.8 / 1000
+link1_length = 44.79 / 1000
+link2_length = 150.08 / 1000
+link4_length = 134 / 1000  # orange bar length
+joint_ratio = 0.24
+
+# Anchors
+motor1_anchor = np.array([0.0, 0.0])
+motor2_anchor = np.array([0.07, -0.03])
+link2_right_anchor = motor2_anchor + np.array([4.0, 11.3]) / 1000
+
+# Setup figure
+fig, ax = plt.subplots()
+plt.subplots_adjust(bottom=0.25)
+ax.set_aspect('equal')
+ax.set_xlim(-0.1, 0.15)
+ax.set_ylim(-0.1, 0.1)
+ax.set_title('2-Link System with Motor Swivels')
+ax.axis('off')
+
+# Draw static anchors
+ax.plot(*motor1_anchor, 'ko')
+ax.plot(*motor2_anchor, 'ko')
+ax.plot(*link2_right_anchor, 'mo')
+
+# Lines and markers
+link1_line, = ax.plot([], [], 'r-', lw=3)
+link2_line, = ax.plot([], [], 'b-', lw=3)
+link3_line, = ax.plot([], [], 'g-', lw=3)
+link4_line, = ax.plot([], [], color='orange', lw=3)
+tip1_marker, = ax.plot([], [], 'go')
+tip2_marker, = ax.plot([], [], 'go')
+
+# Sliders
+ax_slider1 = plt.axes([0.2, 0.1, 0.65, 0.03])
+ax_slider2 = plt.axes([0.2, 0.05, 0.65, 0.03])
+slider1 = Slider(ax_slider1, 'Motor 1 Angle', 0, 40, valinit=0)
+slider2 = Slider(ax_slider2, 'Motor 2 Angle', 0, 40, valinit=0)
+
+def update(val):
+    angle1 = np.radians(135 + slider1.val)
+    angle2 = np.radians(-45 - slider2.val)
+
+    tip1 = motor1_anchor + radiusUpper * np.array([np.cos(angle1), np.sin(angle1)])
+    tip2 = motor2_anchor + radiusLower * np.array([np.cos(angle2), np.sin(angle2)])
+
+    # Red + Blue bar
+    r = link1_length
+    d = link2_length * (1 - joint_ratio)
+    P1 = tip1
+    P2 = link2_right_anchor
+    D = P2 - P1
+    dist = np.linalg.norm(D)
+
+    if dist > r + d or dist < abs(r - d) or (dist == 0 and r == d):
+        return
+
+    a = (r**2 - d**2 + dist**2) / (2 * dist)
+    h = np.sqrt(abs(r**2 - a**2))
+    midpoint = P1 + a * D / dist
+    perp = np.array([-D[1], D[0]]) / dist
+    joint1 = midpoint - h * perp  # joint between red and blue
+
+    full_vec = (link2_right_anchor - joint1) / (1 - joint_ratio)
+    full_vec = full_vec / np.linalg.norm(full_vec) * link2_length
+    left_joint = link2_right_anchor - full_vec  # left end of blue bar
+
+    # Green line: horizontal, ending at green swivel (tip2)
+    green_start = tip2 - np.array([link4_length, 0])
+    green_end = tip2
+
+    # Orange line: fixed length, from left_joint to green_start direction
+    vec = green_start - left_joint
+    vec_len = np.linalg.norm(vec)
+    if vec_len == 0:
+        return
+    vec_dir = vec / vec_len
+    orange_top = left_joint
+    orange_bottom = orange_top + vec_dir * link4_length
+
+    # Update visuals
+    link1_line.set_data([tip1[0], joint1[0]], [tip1[1], joint1[1]])
+    link2_line.set_data([left_joint[0], link2_right_anchor[0]], [left_joint[1], link2_right_anchor[1]])
+    link3_line.set_data([green_start[0], green_end[0]], [green_start[1], green_end[1]])
+    link4_line.set_data([orange_top[0], orange_bottom[0]], [orange_top[1], orange_bottom[1]])
+    tip1_marker.set_data([tip1[0]], [tip1[1]])
+    tip2_marker.set_data([tip2[0]], [tip2[1]])
+    fig.canvas.draw_idle()
+
+slider1.on_changed(update)
+slider2.on_changed(update)
+update(None)
+plt.show()
